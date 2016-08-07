@@ -16,12 +16,18 @@ begin
 
 	page = Nokogiri::HTML(open('/Users/fabio/Desktop/index.html'))
 	#page = Nokogiri::HTML(open("https://news.ycombinator.com/"))
-	titles = page.xpath("//td[@class='title']")
+	num_list = page.css("tr > td.title > span.rank")
+	titles_list = page.css("tr > td.title > a.storylink")
 
 	row = 4
-	titles.each do |t|
-		#puts t.text.to_s.encode("ISO-8859-1")
-		Ncurses.stdscr.mvaddstr(row, 5, t.text.to_s.encode("ISO-8859-1"))
+	# print link numbers
+	num_list.each do |num|
+		Ncurses.stdscr.mvaddstr(row, 1, num.text.encode("ISO-8859-1"))
+		row += 1
+	end
+	row = 4
+	titles_list.each do |title|
+		Ncurses.stdscr.mvaddstr(row, 5, title.text.encode("ISO-8859-1"))
 		row += 1
 	end
 	Ncurses.refresh
