@@ -13,19 +13,25 @@ begin
 	Ncurses.stdscr.intrflush(false)	# turn off flush-on-interrupt
 	Ncurses.stdscr.keypad(true)			# turn on keypad mode
 
+	num_cols = Ncurses.COLS()
 
 	page = Nokogiri::HTML(open('/Users/fabio/Desktop/index.html'))
 	#page = Nokogiri::HTML(open("https://news.ycombinator.com/"))
 	num_list = page.css("tr > td.title > span.rank")
 	titles_list = page.css("tr > td.title > a.storylink")
 
-	row = 4
-	# print link numbers
+	Ncurses::attrset(Ncurses::A_REVERSE);
+	Ncurses.stdscr.mvaddstr(0, 1, "No.")
+	Ncurses.stdscr.mvaddstr(0, (num_cols / 2) - 7, "Top stories")
+	Ncurses::attroff(Ncurses::A_REVERSE);
+
+	row = 1
 	num_list.each do |num|
 		Ncurses.stdscr.mvaddstr(row, 1, num.text.encode("ISO-8859-1"))
 		row += 1
 	end
-	row = 4
+
+	row = 1
 	titles_list.each do |title|
 		Ncurses.stdscr.mvaddstr(row, 5, title.text.encode("ISO-8859-1"))
 		row += 1
