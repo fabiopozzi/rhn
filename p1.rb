@@ -11,7 +11,8 @@ begin
 	Ncurses.stdscr.intrflush(false)	# turn off flush-on-interrupt
 	Ncurses.stdscr.keypad(true)			# turn on keypad mode
 
-	Ncurses.stdscr.addstr("Press a key to continue")
+	Ncurses.stdscr.mvaddstr(4, 19, "Press a key to continue")
+	Ncurses.refresh
 	Ncurses.stdscr.getch
 
 ensure
