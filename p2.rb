@@ -22,23 +22,48 @@ begin
 	titles_list = page.css("tr > td.title > a.storylink")
 
 	Ncurses.init_pair(1, Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
-	Ncurses.stdscr.mvaddstr(0, 1, "No.")
+	Ncurses.stdscr.mvaddstr(0, 2, "No.")
 	Ncurses.stdscr.mvaddstr(0, (num_cols / 2) - 7, "Top stories")
 	Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
 
 	row = 1
 	num_list.each do |num|
-		Ncurses.stdscr.mvaddstr(row, 1, num.text.encode("ISO-8859-1"))
+		Ncurses.stdscr.mvaddstr(row, 2, num.text.encode("ISO-8859-1"))
 		row += 1
 	end
 
 	row = 1
 	titles_list.each do |title|
-		Ncurses.stdscr.mvaddstr(row, 5, title.text.encode("ISO-8859-1"))
+		Ncurses.stdscr.mvaddstr(row, 6, title.text.encode("ISO-8859-1"))
 		row += 1
 	end
 	Ncurses.refresh
-	Ncurses.stdscr.getch
+	sel_line=1
+	Ncurses.stdscr.mvaddstr(sel_line, 0, ">")
+	loop do
+		ch = Ncurses.stdscr.getch
+
+		case ch
+		when Ncurses::KEY_UP
+			if sel_line > 1
+				Ncurses.stdscr.mvaddstr(sel_line, 0, " ")
+				sel_line -= 1
+				Ncurses.stdscr.mvaddstr(sel_line, 0, ">")
+			end
+
+		when Ncurses::KEY_DOWN
+	  	if sel_line >= 1
+				Ncurses.stdscr.mvaddstr(sel_line, 0, " ")
+				sel_line += 1
+				Ncurses.stdscr.mvaddstr(sel_line, 0, ">")
+			end
+
+		when 27
+		# break if user presses "ESC"
+		break
+
+		end #end case
+	end
 
 ensure
 	Ncurses.echo
