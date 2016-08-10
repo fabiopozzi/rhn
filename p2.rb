@@ -7,6 +7,7 @@ require 'open-uri'
 begin
   # initialize ncurses
   Ncurses.initscr
+	Ncurses.start_color
   Ncurses.cbreak						# provide unbuffered input
 	Ncurses.noecho						# turn off input echo
 	Ncurses.nonl							# turn off newline translation
@@ -20,10 +21,10 @@ begin
 	num_list = page.css("tr > td.title > span.rank")
 	titles_list = page.css("tr > td.title > a.storylink")
 
-	Ncurses::attrset(Ncurses::A_REVERSE);
+	Ncurses.init_pair(1, Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
 	Ncurses.stdscr.mvaddstr(0, 1, "No.")
 	Ncurses.stdscr.mvaddstr(0, (num_cols / 2) - 7, "Top stories")
-	Ncurses::attroff(Ncurses::A_REVERSE);
+	Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
 
 	row = 1
 	num_list.each do |num|
