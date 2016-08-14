@@ -62,6 +62,16 @@ begin
 		# break if user presses "ESC"
 		break
 
+		when 49..57
+			Ncurses.stdscr.mvaddstr(sel_line, 0, " ")
+			sel_line = ch - 48
+			Ncurses.stdscr.mvaddstr(sel_line, 0, ">")
+
+		when 97..102
+			Ncurses.stdscr.mvaddstr(sel_line, 0, " ")
+			sel_line = ch - 97 + 10
+			Ncurses.stdscr.mvaddstr(sel_line, 0, ">")
+
 		end #end case
 	end
 
