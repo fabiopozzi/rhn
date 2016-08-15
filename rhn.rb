@@ -4,27 +4,45 @@ require "ncursesw"
 require 'nokogiri'
 require 'open-uri'
 
+class Gui
+	def initialize(front_color, back_color)
+		# initialize ncurses
+		Ncurses.initscr
+		Ncurses.start_color
+		Ncurses.cbreak						# provide unbuffered input
+		Ncurses.noecho						# turn off input echo
+		Ncurses.nonl							# turn off newline translation
+		Ncurses.stdscr.intrflush(false)	# turn off flush-on-interrupt
+		Ncurses.stdscr.keypad(true)			# turn on keypad mode
+
+		@num_cols = Ncurses.COLS()
+		@front_color = front_color
+		@back_color = back_color
+	end
+
+	def restore_curses()
+		Ncurses.echo
+		Ncurses.nocbreak
+		Ncurses.nl
+		Ncurses.endwin
+	end
+
+	def init_first_row()
+		Ncurses.init_pair(1, @front_color , @back_color)
+		Ncurses.stdscr.mvaddstr(0, 2, "No.")
+		Ncurses.stdscr.mvaddstr(0, (@num_cols / 2) - 7, "Top stories")
+		Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
+	end
+end
+
 begin
-  # initialize ncurses
-  Ncurses.initscr
-	Ncurses.start_color
-  Ncurses.cbreak						# provide unbuffered input
-	Ncurses.noecho						# turn off input echo
-	Ncurses.nonl							# turn off newline translation
-	Ncurses.stdscr.intrflush(false)	# turn off flush-on-interrupt
-	Ncurses.stdscr.keypad(true)			# turn on keypad mode
-
-	num_cols = Ncurses.COLS()
-
+	g = Gui.new(Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
 	page = Nokogiri::HTML(open('/Users/fabio/Desktop/index.html'))
 	#page = Nokogiri::HTML(open("https://news.ycombinator.com/"))
 	num_list = page.css("tr > td.title > span.rank")
 	titles_list = page.css("tr > td.title > a.storylink")
 
-	Ncurses.init_pair(1, Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
-	Ncurses.stdscr.mvaddstr(0, 2, "No.")
-	Ncurses.stdscr.mvaddstr(0, (num_cols / 2) - 7, "Top stories")
-	Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
+	g.init_first_row()
 
 	row = 1
 	num_list.each do |num|
@@ -76,8 +94,5 @@ begin
 	end
 
 ensure
-	Ncurses.echo
-	Ncurses.nocbreak
-	Ncurses.nl
-	Ncurses.endwin
+	g.restore_curses()
 end
