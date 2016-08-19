@@ -30,7 +30,8 @@ class Gui
 	def init_first_row()
 		Ncurses.init_pair(1, @front_color , @back_color)
 		Ncurses.stdscr.mvaddstr(0, 2, "No.")
-		Ncurses.stdscr.mvaddstr(0, (@num_cols / 2) - 7, "Top stories")
+		Ncurses.stdscr.mvaddstr(0, ((@num_cols - 8) / 2) - 7, "Top stories")
+		Ncurses.stdscr.mvaddstr(0, @num_cols - 10, "Comments")
 		Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
 	end
 end
@@ -40,6 +41,7 @@ begin
 	page = Nokogiri::HTML(open('/Users/fabio/Desktop/index.html'))
 	num_list = page.css("tr > td.title > span.rank")
 	title_list = page.css("tr > td.title > a.storylink")
+	subtext_list = page.css("tr > td.subtext")
 
 	g.init_first_row()
 	row = 1
@@ -50,6 +52,15 @@ begin
 	row = 1
 	title_list.each do |t|
 		Ncurses.stdscr.mvaddstr(row, 6, t.text.encode("ISO-8859-1"))
+		row += 1
+	end
+	row = 1
+	subtext_list.each do |s|
+		tmp = s.css("a")[3]
+		if tmp
+			cc = tmp.child.text.split(" ").first
+			Ncurses.stdscr.mvaddstr(row, Ncurses.COLS() - 8, cc)
+		end
 		row += 1
 	end
 
