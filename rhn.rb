@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby
 require 'rubygems'
-require "ncursesw"
-require 'httparty'
+require 'ncursesw'
+require 'nokogiri'
+require 'open-uri'
 
 class Gui
 	def initialize(front_color, back_color)
@@ -36,15 +37,19 @@ end
 
 begin
 	g = Gui.new(Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
-	base_url = "https://hacker-news.firebaseio.com/v0/"
-	top_stories = HTTParty.get(base_url + "topstories.json")
+	page = Nokogiri::HTML(open('/Users/fabio/Desktop/index.html'))
+	num_list = page.css("tr > td.title > span.rank")
+	title_list = page.css("tr > td.title > a.storylink")
 
 	g.init_first_row()
 	row = 1
-	(0..15).each do |i|
-		news = HTTParty.get(base_url + "item/#{top_stories[i]}.json")
-		Ncurses.stdscr.mvaddstr(row, 2, row.to_s)
-		Ncurses.stdscr.mvaddstr(row, 6, news["title"])
+	num_list.each do |n|
+		Ncurses.stdscr.mvaddstr(row, 2, n.text.encode("ISO-8859-1"))
+		row += 1
+	end
+	row = 1
+	title_list.each do |t|
+		Ncurses.stdscr.mvaddstr(row, 6, t.text.encode("ISO-8859-1"))
 		row += 1
 	end
 
