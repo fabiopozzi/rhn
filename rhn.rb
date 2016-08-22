@@ -50,7 +50,6 @@ end
 begin
   g = Gui.new(Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
   page = Nokogiri::HTML(open('/media/sf_vm_shared/index.htm'))
-  num_list = page.css("tr > td.title > span.rank")
   title_list = page.css("tr > td.title > a.storylink")
   subtext_list = page.css("tr > td.subtext")
 
@@ -58,14 +57,14 @@ begin
   notizie = []
   i = 0
 
-  for i in 0..(num_list.length-1) do
+  for i in 0..(title_list.length-1) do
     if subtext_list[i]
       tmp = subtext_list[i].css("a")[3].child
       n_commenti = tmp.text.split(/[[:space:]]/).first
     else
       n_commenti = 0
     end
-    n = Notizia.new(num_list[i].text.encode("ISO-8859-1"),
+    n = Notizia.new((i+1).to_s,
                     title_list[i].text.encode("ISO-8859-1"),
                     title_list[i]["href"].encode("ISO-8859-1"),
                     n_commenti)
