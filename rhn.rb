@@ -67,7 +67,7 @@ begin
     end
     n = Notizia.new(num_list[i].text.encode("ISO-8859-1"),
                     title_list[i].text.encode("ISO-8859-1"),
-                    "http://example.com",
+                    title_list[i]["href"].encode("ISO-8859-1"),
                     n_commenti)
     notizie << n
   end
