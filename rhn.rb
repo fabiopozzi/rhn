@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+#encoding: UTF-8
 require 'rubygems'
 require 'ncursesw'
 require 'nokogiri'
@@ -58,7 +59,7 @@ begin
 	subtext_list.each do |s|
 		tmp = s.css("a")[3]
 		if tmp
-			cc = tmp.child.text.split(" ").first
+			cc = tmp.child.text.split(/[[:space:]]/).first
 			Ncurses.stdscr.mvaddstr(row, Ncurses.COLS() - 8, cc)
 		end
 		row += 1
