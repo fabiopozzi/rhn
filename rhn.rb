@@ -99,14 +99,12 @@ begin
       end
 
     when Ncurses::KEY_RIGHT
-        # 'return' keypress
-        # open notizie[sel_line-1].link
-        Ncurses.stdscr.mvaddstr(sel_line, 2, "open link #{notizie[sel_line-1].link}")
+      Process.detach(Process.spawn("firefox #{notizie[sel_line-1].link}"))
 
     when 109
-        # 'm' keypress
-        # email notizie[sel_line-1].link
-        Ncurses.stdscr.mvaddstr(sel_line, 2, "email link #{notizie[sel_line-1].link}")
+      # 'm' keypress
+      # email notizie[sel_line-1].link
+      Ncurses.stdscr.mvaddstr(sel_line, 2, "email link #{notizie[sel_line-1].link}")
 
     when 27
       # break if user presses "ESC"
