@@ -50,7 +50,8 @@ end
 
 begin
   g = Gui.new(Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
-  page = Nokogiri::HTML(open('/media/sf_vm_shared/index.htm'))
+  page = Nokogiri::HTML(open("https://news.ycombinator.com/"))
+  #page = Nokogiri::HTML(open('/media/sf_vm_shared/index.htm'))
   title_list = page.css("tr > td.title > a.storylink")
   subtext_list = page.css("tr > td.subtext")
 
@@ -60,8 +61,10 @@ begin
 
   for i in 0..(title_list.length-1) do
     if subtext_list[i]
-      tmp = subtext_list[i].css("a")[3].child
-      n_commenti = tmp.text.split(/[[:space:]]/).first
+      if subtext_list[i].css("a")[3]
+        tmp = subtext_list[i].css("a")[3].child
+        n_commenti = tmp.text.split(/[[:space:]]/).first
+      end
     else
       n_commenti = 0
     end
@@ -104,11 +107,12 @@ begin
 
     when 109
       # 'm' keypress
+      Ncurses.stdscr.mvaddstr(sel_line, 0, " " * Ncurses.COLS())
       Ncurses.stdscr.mvaddstr(sel_line, 0, "      Email link #{notizie[sel_line-1].link}")
       Ncurses.refresh
       m = Mail.new do
         from    'fabio@antani.work'
-        to      'pozzi.fabio@gmail.com'
+        to      'wintermute@antani.work'
         subject "[bookmarks] #{notizie[sel_line-1].title}"
         body    "#{notizie[sel_line-1].link} \n sent by rhn.rb"
       end
