@@ -4,6 +4,7 @@ require 'rubygems'
 require 'ncursesw'
 require 'nokogiri'
 require 'open-uri'
+require 'mail'
 
 class Notizia
   attr_reader :num, :title, :link, :n_commenti
@@ -103,8 +104,22 @@ begin
 
     when 109
       # 'm' keypress
-      # email notizie[sel_line-1].link
-      Ncurses.stdscr.mvaddstr(sel_line, 2, "email link #{notizie[sel_line-1].link}")
+      Ncurses.stdscr.mvaddstr(sel_line, 0, "      Email link #{notizie[sel_line-1].link}")
+      Ncurses.refresh
+      m = Mail.new do
+        from    'fabio@antani.work'
+        to      'pozzi.fabio@gmail.com'
+        subject "[bookmarks] #{notizie[sel_line-1].title}"
+        body    "#{notizie[sel_line-1].link} \n sent by rhn.rb"
+      end
+      m.deliver!
+      sleep 3
+      Ncurses.stdscr.mvaddstr(sel_line, 0, " " * Ncurses.COLS())
+      Ncurses.refresh
+      Ncurses.stdscr.mvaddstr(sel_line, 2, notizie[sel_line-1].num)
+      Ncurses.stdscr.mvaddstr(sel_line, 6, notizie[sel_line-1].title)
+      Ncurses.stdscr.mvaddstr(sel_line, Ncurses.COLS() - 8, notizie[sel_line-1].n_commenti)
+      Ncurses.refresh
 
     when 27
       # break if user presses "ESC"
