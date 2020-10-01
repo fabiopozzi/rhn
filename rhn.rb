@@ -58,12 +58,11 @@ begin
 
   g.init_first_row()
   notizie = []
-  i = 0
 
   for i in 0..(title_list.length - 1) do
     if subtext_list[i]
-      if subtext_list[i].css("a")[3]
-        tmp = subtext_list[i].css("a")[3].child
+      if subtext_list[i].css('a')[3]
+        tmp = subtext_list[i].css('a')[3].child
         n_commenti = tmp.text.split(/[[:space:]]/).first
       end
     else
