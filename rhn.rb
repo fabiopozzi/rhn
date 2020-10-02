@@ -44,7 +44,7 @@ class Gui
 
   def init_first_row
     Ncurses.init_pair(1, @front_color, @back_color)
-    Ncurses.stdscr.mvaddstr(0, 2, 'No.')
+    Ncurses.stdscr.mvaddstr(0, 2, '#')
     Ncurses.stdscr.mvaddstr(0, ((@num_cols - 8) / 2) - 7, 'Top stories')
     Ncurses.stdscr.mvaddstr(0, @num_cols - 10, 'Comments')
     Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
@@ -71,14 +71,16 @@ begin
   g.init_first_row()
   notizie = []
 
-  for i in 0..(title_list.length - 1) do
+  (0...title_list.length).each do |i|
     if subtext_list[i]
       if subtext_list[i].css('a')[3]
         tmp = subtext_list[i].css('a')[3].child
         n_commenti = tmp.text.split(/[[:space:]]/).first
+      else
+        n_commenti = '0'
       end
     else
-      n_commenti = 0
+      n_commenti = '0'
     end
     n = Notizia.new((i + 1).to_s,
                     title_list[i].text.encode('ISO-8859-1'),
