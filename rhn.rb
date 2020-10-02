@@ -60,9 +60,9 @@ class Gui
 end
 
 begin
-  g = Gui.new(Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
-  html = URI.open("https://news.ycombinator.com/")
+  html = URI.open('https://news.ycombinator.com/')
   page = Nokogiri::HTML(html)
+  # page = Nokogiri::HTML(open('./index.html'))
 
   title_list = page.css('tr > td.title > a.storylink')
   subtext_list = page.css('tr > td.subtext')
