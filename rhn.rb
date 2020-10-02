@@ -17,8 +17,12 @@ class Notizia
 end
 
 class Gui
+  CYAN_COLOR_PAIR = 1
+  NEWS_COLOR_PAIR = 2
+  STARTING_ROW = 2
+
   attr_reader :sel_line
-  def initialize(front_color, back_color, max_rows)
+  def initialize(max_rows)
     # initialize ncurses
     Ncurses.initscr
     Ncurses.start_color
@@ -29,10 +33,10 @@ class Gui
     Ncurses.stdscr.keypad(true)       # turn on keypad mode
 
     @num_cols = Ncurses.COLS()
-    @front_color = front_color
-    @back_color = back_color
+    @front_color = Ncurses::COLOR_CYAN
+    @back_color = Ncurses::COLOR_BLACK
     @max_rows = max_rows
-    @sel_line = 1
+    @sel_line = STARTING_ROW
   end
 
   def restore_curses
@@ -42,19 +46,39 @@ class Gui
     Ncurses.endwin
   end
 
+  def write_news(notizie)
+    return if notizie.nil?
+
+    notizie.each_with_index do |n, i|
+      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 2, n.num)
+      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 6, n.title)
+      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, Ncurses.COLS() - 8, n.n_commenti.to_s)
+    end
+
+    # highlight first news content
+    Ncurses.init_pair(NEWS_COLOR_PAIR, Ncurses::COLOR_WHITE, Ncurses::COLOR_BLACK)
+    Ncurses.mvchgat(STARTING_ROW, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
+
+    Ncurses.refresh
+  end
+
   def init_first_row
-    Ncurses.init_pair(1, @front_color, @back_color)
+    Ncurses.init_pair(CYAN_COLOR_PAIR, @front_color, @back_color)
     Ncurses.stdscr.mvaddstr(0, 2, '#')
     Ncurses.stdscr.mvaddstr(0, ((@num_cols - 8) / 2) - 7, 'Top stories')
     Ncurses.stdscr.mvaddstr(0, @num_cols - 10, 'Comments')
-    Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
+    Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, CYAN_COLOR_PAIR, nil)
   end
 
   def update_rows(delta)
+    Ncurses.mvchgat(@sel_line, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
     Ncurses.stdscr.mvaddstr(@sel_line, 0, ' ')
-    @sel_line += delta
-    @sel_line = 1 if @sel_line == 0
-    @sel_line = @max_rows if @sel_line > @max_rows
+
+    # wrap around if you reach the last news
+    @sel_line = (@sel_line + delta) % (STARTING_ROW + @max_rows)
+    @sel_line = STARTING_ROW if @sel_line < STARTING_ROW
+
+    Ncurses.mvchgat(@sel_line, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
     Ncurses.stdscr.mvaddstr(@sel_line, 0, '>')
   end
 end
@@ -67,7 +91,7 @@ begin
   title_list = page.css('tr > td.title > a.storylink')
   subtext_list = page.css('tr > td.subtext')
 
-  g = Gui.new(Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK, title_list.length)
+  g = Gui.new(title_list.length)
   g.init_first_row()
   notizie = []
 
@@ -89,14 +113,7 @@ begin
     notizie << n
   end
 
-  notizie.each_with_index do |n, i|
-     Ncurses.stdscr.mvaddstr(i + 1, 2, n.num)
-     Ncurses.stdscr.mvaddstr(i + 1, 6, n.title)
-     Ncurses.stdscr.mvaddstr(i + 1, Ncurses.COLS() - 8, n.n_commenti.to_s)
-  end
-
-  Ncurses.refresh
-  Ncurses.stdscr.mvaddstr(1, 0, '>')
+  g.write_news(notizie)
   loop do
     ch = Ncurses.stdscr.getch
 
