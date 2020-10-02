@@ -17,7 +17,8 @@ class Notizia
 end
 
 class Gui
-  def initialize(front_color, back_color)
+  attr_reader :sel_line
+  def initialize(front_color, back_color, max_rows)
     # initialize ncurses
     Ncurses.initscr
     Ncurses.start_color
@@ -30,6 +31,8 @@ class Gui
     @num_cols = Ncurses.COLS()
     @front_color = front_color
     @back_color = back_color
+    @max_rows = max_rows
+    @sel_line = 1
   end
 
   def restore_curses
@@ -46,6 +49,14 @@ class Gui
     Ncurses.stdscr.mvaddstr(0, @num_cols - 10, 'Comments')
     Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, 1, nil)
   end
+
+  def update_rows(delta)
+    Ncurses.stdscr.mvaddstr(@sel_line, 0, ' ')
+    @sel_line += delta
+    @sel_line = 1 if @sel_line == 0
+    @sel_line = @max_rows if @sel_line > @max_rows
+    Ncurses.stdscr.mvaddstr(@sel_line, 0, '>')
+  end
 end
 
 begin
@@ -56,6 +67,7 @@ begin
   title_list = page.css('tr > td.title > a.storylink')
   subtext_list = page.css('tr > td.subtext')
 
+  g = Gui.new(Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK, title_list.length)
   g.init_first_row()
   notizie = []
 
@@ -76,68 +88,39 @@ begin
   end
 
   notizie.each_with_index do |n, i|
-    Ncurses.stdscr.mvaddstr(i + 1, 2, n.num)
-    Ncurses.stdscr.mvaddstr(i + 1, 6, n.title)
-    Ncurses.stdscr.mvaddstr(i + 1, Ncurses.COLS() - 8, n.n_commenti)
+     Ncurses.stdscr.mvaddstr(i + 1, 2, n.num)
+     Ncurses.stdscr.mvaddstr(i + 1, 6, n.title)
+     Ncurses.stdscr.mvaddstr(i + 1, Ncurses.COLS() - 8, n.n_commenti.to_s)
   end
 
   Ncurses.refresh
-  sel_line = 1
-  Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
+  Ncurses.stdscr.mvaddstr(1, 0, '>')
   loop do
     ch = Ncurses.stdscr.getch
 
     case ch
     when Ncurses::KEY_UP
-      if sel_line > 1
-        Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
-        sel_line -= 1
-        Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
-      end
+      g.update_rows(-1)
 
     when Ncurses::KEY_DOWN
-      if sel_line >= 1
-        Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
-        sel_line += 1
-        Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
-      end
+      g.update_rows(+1)
 
     when Ncurses::KEY_RIGHT
-      Process.detach(Process.spawn("firefox #{notizie[sel_line-1].link}"))
-
-    when 109
-      # 'm' keypress
-      Ncurses.stdscr.mvaddstr(sel_line, 0, ' ' * Ncurses.COLS())
-      Ncurses.stdscr.mvaddstr(sel_line, 0, "      Email link #{notizie[sel_line-1].link}")
-      Ncurses.refresh
-      m = Mail.new do
-        from    'fabio@antani.work'
-        to      'wintermute@antani.work'
-        subject "[bookmarks] #{notizie[sel_line-1].title}"
-        body    "#{notizie[sel_line-1].link} \n sent by rhn.rb"
-      end
-      m.deliver!
-      sleep 3
-      Ncurses.stdscr.mvaddstr(sel_line, 0, ' ' * Ncurses.COLS())
-      Ncurses.refresh
-      Ncurses.stdscr.mvaddstr(sel_line, 2, notizie[sel_line - 1].num)
-      Ncurses.stdscr.mvaddstr(sel_line, 6, notizie[sel_line - 1].title)
-      Ncurses.stdscr.mvaddstr(sel_line, Ncurses.COLS() - 8, notizie[sel_line - 1].n_commenti)
-      Ncurses.refresh
+      Process.detach(Process.spawn("open -a Firefox '#{notizie[g.sel_line - 1].link}'"))
 
     when 113
       # break if user presses 'q'
       break
 
-    when 49..57
-      Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
-      sel_line = ch - 48
-      Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
+    # when '1'..'9'
+    #   Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
+    #   sel_line = ch - 48
+    #   Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
 
-    when 97..102
-      Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
-      sel_line = ch - 97 + 10
-      Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
+    # when 'a'..'f'
+    #   Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
+    #   sel_line = ch - 97 + 10
+    #   Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
 
     end #end case
   end
