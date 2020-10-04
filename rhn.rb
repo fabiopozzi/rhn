@@ -5,7 +5,8 @@ require 'rubygems'
 require 'ncursesw'
 require 'nokogiri'
 require 'open-uri'
-require 'mail'
+require 'feedjira'
+require 'httparty'
 
 class Notizia
   attr_reader :num, :title, :link, :n_commenti
@@ -41,7 +42,7 @@ class Gui
   end
 
   def get_news_index
-    return @sel_line - STARTING_ROW
+    @sel_line - STARTING_ROW
   end
 
   def restore_curses
@@ -56,6 +57,8 @@ class Gui
 
     notizie.each_with_index do |n, i|
       Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 2, n.num)
+      # clear the rest of the line before writing title
+      Ncurses.clrtoeol
       Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 6, n.title)
       Ncurses.stdscr.mvaddstr(i + STARTING_ROW, Ncurses.COLS() - 8, n.n_commenti.to_s)
     end
@@ -88,18 +91,18 @@ class Gui
   end
 end
 
-begin
+# Esegui il parsing della pagina di HN,
+# crea e restituisci un array di oggetti notizia
+def parse_hn
   html = URI.open('https://news.ycombinator.com/')
   page = Nokogiri::HTML(html)
   # page = Nokogiri::HTML(open('./index.html'))
 
   title_list = page.css('tr > td.title > a.storylink')
   subtext_list = page.css('tr > td.subtext')
-
-  g = Gui.new(title_list.length)
-  g.init_first_row()
   notizie = []
 
+  # get news list count
   (0...title_list.length).each do |i|
     if subtext_list[i]
       if subtext_list[i].css('a')[3]
@@ -117,8 +120,36 @@ begin
                     n_commenti)
     notizie << n
   end
+  notizie
+end
 
-  g.write_news(notizie)
+# Esegui il parsing del feed XML ultime notizie ANSA.
+def parse_ansa
+  xml = HTTParty.get('https://www.ansa.it/sito/ansait_rss.xml').body
+  feed = Feedjira.parse(xml)
+  notizie = []
+  feed.entries.each_with_index do |e, i|
+    # print("num #{i} : #{e.title}  #{e.url}\n")
+    n = Notizia.new((i + 1).to_s,
+                    e.title.to_s,
+                    e.url.to_s,
+                    ' ')
+    notizie << n
+  end
+  notizie
+end
+
+begin
+  notizie = {}
+  notizie['HN'] = parse_hn
+  notizie['ansa'] = parse_ansa
+
+  ns = 'HN' # default news source
+
+  g = Gui.new(notizie[ns].length)
+  g.init_first_row()
+
+  g.write_news(notizie[ns])
   loop do
     ch = Ncurses.stdscr.getch
 
@@ -136,6 +167,16 @@ begin
       # break if user presses 'q'
       break
 
+    when 49
+      # when user press 1 switch to ansa
+      ns = 'ansa'
+      g.write_news(notizie[ns])
+
+    when 48
+      # when user press 1 switch to ansa
+      ns = 'HN'
+      g.write_news(notizie[ns])
+
     # when '1'..'9'
     #   Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
     #   sel_line = ch - 48
@@ -146,7 +187,7 @@ begin
     #   sel_line = ch - 97 + 10
     #   Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
 
-    end #end case
+    end
   end
 ensure
   g.restore_curses()
