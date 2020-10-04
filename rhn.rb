@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'rubygems'
 require 'ncursesw'
@@ -39,6 +40,10 @@ class Gui
     @sel_line = STARTING_ROW
   end
 
+  def get_news_index
+    return @sel_line - STARTING_ROW
+  end
+
   def restore_curses
     Ncurses.echo
     Ncurses.nocbreak
@@ -76,7 +81,7 @@ class Gui
 
     # wrap around if you reach the last news
     @sel_line = (@sel_line + delta) % (STARTING_ROW + @max_rows)
-    @sel_line = STARTING_ROW if @sel_line < STARTING_ROW
+    @sel_line = STARTING_ROW + @max_rows if @sel_line < STARTING_ROW
 
     Ncurses.mvchgat(@sel_line, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
     Ncurses.stdscr.mvaddstr(@sel_line, 0, '>')
@@ -125,7 +130,7 @@ begin
       g.update_rows(+1)
 
     when Ncurses::KEY_RIGHT
-      Process.detach(Process.spawn("open -a Firefox '#{notizie[g.sel_line - 1].link}'"))
+      Process.detach(Process.spawn("open -a Firefox '#{notizie[g.get_news_index].link}'"))
 
     when 113
       # break if user presses 'q'
