@@ -24,7 +24,7 @@ class Gui
   STARTING_ROW = 2
 
   attr_reader :sel_line
-  def initialize(max_rows)
+  def initialize
     # initialize ncurses
     Ncurses.initscr
     Ncurses.start_color
@@ -37,7 +37,7 @@ class Gui
     @num_cols = Ncurses.COLS()
     @front_color = Ncurses::COLOR_CYAN
     @back_color = Ncurses::COLOR_BLACK
-    @max_rows = max_rows
+    @max_rows = Ncurses.LINES()
     @sel_line = STARTING_ROW
   end
 
@@ -55,6 +55,7 @@ class Gui
   def write_news(notizie)
     return if notizie.nil?
 
+    @max_rows = notizie.length
     notizie.each_with_index do |n, i|
       Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 2, n.num)
       # clear the rest of the line before writing title
@@ -145,8 +146,7 @@ begin
   notizie['ansa'] = parse_ansa
 
   ns = 'HN' # default news source
-
-  g = Gui.new(notizie[ns].length)
+  g = Gui.new()
   g.init_first_row()
 
   g.write_news(notizie[ns])
@@ -154,14 +154,17 @@ begin
     ch = Ncurses.stdscr.getch
 
     case ch
-    when Ncurses::KEY_UP
-      g.update_rows(-1)
+    when Ncurses::KEY_PPAGE
+      g.update_rows(-5)
+
+    when Ncurses::KEY_NPAGE
+      g.update_rows(+5)
 
     when Ncurses::KEY_DOWN
       g.update_rows(+1)
 
     when Ncurses::KEY_RIGHT
-      Process.detach(Process.spawn("open -a Firefox '#{notizie[g.get_news_index].link}'"))
+      Process.detach(Process.spawn("open -a Firefox '#{notizie[ns][g.get_news_index].link}'"))
 
     when 113
       # break if user presses 'q'
