@@ -37,8 +37,8 @@ class Gui
     @num_cols = Ncurses.COLS()
     @front_color = Ncurses::COLOR_CYAN
     @back_color = Ncurses::COLOR_BLACK
-    @max_rows = Ncurses.LINES()
     @sel_line = STARTING_ROW
+    @page = 0
   end
 
   def get_news_index
@@ -52,14 +52,28 @@ class Gui
     Ncurses.endwin
   end
 
+  def next_page
+    @page += 1
+  end
+
+  def prev_page
+    @page = [@page - 1, 0].maxG
+  end
+
   def write_news(notizie)
     return if notizie.nil?
 
-    @max_rows = notizie.length
-    notizie.each_with_index do |n, i|
-      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 2, n.num)
-      # clear the rest of the line before writing title
-      Ncurses.clrtoeol
+    Ncurses.clrtobot
+    init_first_row
+
+    @max_rows = [30, notizie.length].min
+
+    (0..@max_rows).each do |i|
+      pos = (@page * @max_rows) + i
+      n = notizie[pos]
+      next if n.nil?
+
+      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 2, pos.to_s)
       Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 6, n.title)
       Ncurses.stdscr.mvaddstr(i + STARTING_ROW, Ncurses.COLS() - 8, n.n_commenti.to_s)
     end
@@ -163,8 +177,19 @@ begin
     when Ncurses::KEY_DOWN
       g.update_rows(+1)
 
+    when Ncurses::KEY_UP
+      g.update_rows(-1)
+
     when Ncurses::KEY_RIGHT
       Process.detach(Process.spawn("open -a Firefox '#{notizie[ns][g.get_news_index].link}'"))
+
+    when 110
+      g.next_page
+      g.write_news(notizie[ns])
+
+    when 112
+      g.prev_page
+      g.write_news(notizie[ns])
 
     when 113
       # break if user presses 'q'
@@ -180,18 +205,12 @@ begin
       ns = 'HN'
       g.write_news(notizie[ns])
 
-    # when '1'..'9'
-    #   Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
-    #   sel_line = ch - 48
-    #   Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
-
-    # when 'a'..'f'
-    #   Ncurses.stdscr.mvaddstr(sel_line, 0, ' ')
-    #   sel_line = ch - 97 + 10
-    #   Ncurses.stdscr.mvaddstr(sel_line, 0, '>')
-
     end
   end
 ensure
   g.restore_curses()
 end
+
+# TODO: aggiungere colori?
+# TODO: aggiungere visualizzazione tab?
+# TODO: leggere sorgenti RSS da file
