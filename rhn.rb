@@ -37,12 +37,12 @@ class Gui
     @num_cols = Ncurses.COLS()
     @front_color = Ncurses::COLOR_CYAN
     @back_color = Ncurses::COLOR_BLACK
-    @sel_line = STARTING_ROW
+    @sel_line = 0
     @page = 0
   end
 
   def get_news_index
-    @sel_line - STARTING_ROW
+    (@page * @max_rows) + @sel_line
   end
 
   def restore_curses
@@ -54,10 +54,12 @@ class Gui
 
   def next_page
     @page += 1
+    @sel_line = @sel_line + @max_rows
   end
 
   def prev_page
-    @page = [@page - 1, 0].maxG
+    @page = [@page - 1, 0].max
+    @sel_line = [@sel_line - @max_rows, 0].max
   end
 
   def write_news(notizie)
@@ -73,9 +75,11 @@ class Gui
       n = notizie[pos]
       next if n.nil?
 
-      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 2, pos.to_s)
-      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, 6, n.title)
-      Ncurses.stdscr.mvaddstr(i + STARTING_ROW, Ncurses.COLS() - 8, n.n_commenti.to_s)
+      Ncurses.clrtoeol
+      current_row = i + STARTING_ROW
+      Ncurses.stdscr.mvaddstr(current_row, 2, pos.to_s)
+      Ncurses.stdscr.mvaddstr(current_row, 6, n.title)
+      Ncurses.stdscr.mvaddstr(current_row, Ncurses.COLS() - 8, n.n_commenti.to_s)
     end
 
     # highlight first news content
@@ -93,16 +97,22 @@ class Gui
     Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, CYAN_COLOR_PAIR, nil)
   end
 
+  def write_row_num
+    Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
+    Ncurses.clrtoeol
+    Ncurses.stdscr.mvaddstr(@sel_line + STARTING_ROW, 0, pos.to_s)
+  end
+
   def update_rows(delta)
-    Ncurses.mvchgat(@sel_line, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
-    Ncurses.stdscr.mvaddstr(@sel_line, 0, ' ')
+    Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
+    Ncurses.stdscr.mvaddstr(@sel_line + STARTING_ROW, 0, ' ')
 
     # wrap around if you reach the last news
-    @sel_line = (@sel_line + delta) % (STARTING_ROW + @max_rows)
-    @sel_line = STARTING_ROW + @max_rows if @sel_line < STARTING_ROW
+    @sel_line = (@sel_line + delta) % (@max_rows)
+    @sel_line = @max_rows if @sel_line < 0
 
-    Ncurses.mvchgat(@sel_line, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
-    Ncurses.stdscr.mvaddstr(@sel_line, 0, '>')
+    Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
+    Ncurses.stdscr.mvaddstr(@sel_line + STARTING_ROW, 0, '>')
   end
 end
 
@@ -181,7 +191,7 @@ begin
       g.update_rows(-1)
 
     when Ncurses::KEY_RIGHT
-      Process.detach(Process.spawn("open -a Firefox '#{notizie[ns][g.get_news_index].link}'"))
+      Process.detach(Process.spawn("firefox #{notizie[ns][g.get_news_index].link}"))
 
     when 110
       g.next_page
