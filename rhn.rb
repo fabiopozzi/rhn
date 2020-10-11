@@ -191,7 +191,11 @@ begin
       g.update_rows(-1)
 
     when Ncurses::KEY_RIGHT
-      Process.detach(Process.spawn("firefox #{notizie[ns][g.get_news_index].link}"))
+      if RUBY_PLATFORM.include? "darwin"
+        Process.detach(Process.spawn("open -a Firefox '#{notizie[ns][g.get_news_index].link}'"))
+      else
+        Process.detach(Process.spawn("firefox #{notizie[ns][g.get_news_index].link}"))
+      end
 
     when 110
       g.next_page
