@@ -8,6 +8,28 @@ require 'open-uri'
 require 'feedjira'
 require 'httparty'
 
+class Feed
+  attr_reader :name, :news_num
+  def initialize(name)
+    @notizie = []
+    @news_num = 0
+    @name = name
+  end
+
+  def add_news(index, title, url, n_commenti)
+    @notizie << Notizia.new(index.to_s,
+                    title,
+                    url,
+                    n_commenti.to_s)
+    @news_num += 1
+  end
+
+  def get_news(pos)
+    # TODO: aggiungi check range
+    @notizie[pos]
+  end
+end
+
 class Notizia
   attr_reader :num, :title, :link, :n_commenti
   def initialize(num, title, link, n_commenti)
@@ -62,24 +84,23 @@ class Gui
     @sel_line = [@sel_line - @max_rows, 0].max
   end
 
-  def write_news(notizie)
-    return if notizie.nil?
+  def write_news(feed)
 
     Ncurses.clrtobot
-    init_first_row
+    init_first_row(feed.name)
 
-    @max_rows = [30, notizie.length].min
+    @max_rows = [30, feed.news_num].min
 
     (0..@max_rows).each do |i|
       pos = (@page * @max_rows) + i
-      n = notizie[pos]
+      n = feed.get_news(pos)
       next if n.nil?
 
       current_row = i + STARTING_ROW
       Ncurses.stdscr.mvaddstr(current_row, 2, pos.to_s)
       Ncurses.stdscr.mvaddstr(current_row, 6, n.title)
       Ncurses.clrtoeol
-      Ncurses.stdscr.mvaddstr(current_row, Ncurses.COLS() - 8, n.n_commenti.to_s)
+      Ncurses.stdscr.mvaddstr(current_row, Ncurses.COLS() - 8, n.n_commenti)
     end
 
     Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
@@ -91,18 +112,11 @@ class Gui
     Ncurses.refresh
   end
 
-  def init_first_row
+  def init_first_row(feed_name)
     Ncurses.init_pair(CYAN_COLOR_PAIR, @front_color, @back_color)
-    Ncurses.stdscr.mvaddstr(0, 2, '#')
-    Ncurses.stdscr.mvaddstr(0, ((@num_cols - 8) / 2) - 7, 'Top stories')
-    Ncurses.stdscr.mvaddstr(0, @num_cols - 10, 'Comments')
-    Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, CYAN_COLOR_PAIR, nil)
-  end
-
-  def write_row_num
-    Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
+    Ncurses.stdscr.mvaddstr(0, ((@num_cols - 8) / 2) - 7, feed_name)
     Ncurses.clrtoeol
-    Ncurses.stdscr.mvaddstr(@sel_line + STARTING_ROW, 0, pos.to_s)
+    Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, CYAN_COLOR_PAIR, nil)
   end
 
   def update_rows(delta)
@@ -125,7 +139,7 @@ def parse_hn
 
   title_list = page.css('tr > td.title > a.storylink')
   subtext_list = page.css('tr > td.subtext')
-  notizie = []
+  f = Feed.new("Hacker News")
 
   # get news list count
   (0...title_list.length).each do |i|
@@ -139,41 +153,40 @@ def parse_hn
     else
       n_commenti = '0'
     end
-    n = Notizia.new((i + 1).to_s,
-                    title_list[i].text.encode('ISO-8859-1'),
-                    title_list[i]['href'].encode('ISO-8859-1'),
-                    n_commenti)
-    notizie << n
+    f.add_news(i+1,
+               title_list[i].text.encode('ISO-8859-1'),
+               title_list[i]['href'].encode('ISO-8859-1'),
+               n_commenti)
   end
-  notizie
+  f
 end
 
 # Esegui il parsing del feed XML ultime notizie ANSA.
-def parse_ansa
-  xml = HTTParty.get('https://www.ansa.it/sito/ansait_rss.xml').body
+def parse_feed(title, url)
+  xml = HTTParty.get(url).body
   feed = Feedjira.parse(xml)
-  notizie = []
+
+  f = Feed.new(title)
   feed.entries.each_with_index do |e, i|
+    f.add_news(i+1,
+               e.title.to_s,
+               e.url.to_s,
+               ' ')
     # print("num #{i} : #{e.title}  #{e.url}\n")
-    n = Notizia.new((i + 1).to_s,
-                    e.title.to_s,
-                    e.url.to_s,
-                    ' ')
-    notizie << n
   end
-  notizie
+  f
 end
 
 begin
-  notizie = {}
-  notizie['HN'] = parse_hn
-  notizie['ansa'] = parse_ansa
+  feeds = {}
+  feeds[:hn] = parse_hn
+  feeds[:ansa] = parse_feed('Ansa', 'https://www.ansa.it/sito/ansait_rss.xml')
+  feeds[:post] = parse_feed('il Post', 'https://www.ilpost.it/feed')
 
-  ns = 'HN' # default news source
+  cur_feed = feeds[:hn]
   g = Gui.new()
-  g.init_first_row()
 
-  g.write_news(notizie[ns])
+  g.write_news(cur_feed)
   loop do
     ch = Ncurses.stdscr.getch
 
@@ -191,34 +204,41 @@ begin
       g.update_rows(-1)
 
     when Ncurses::KEY_RIGHT
+      l = cur_feed.get_news(g.get_news_index).link
       if RUBY_PLATFORM.include? "darwin"
-        Process.detach(Process.spawn("open -a Firefox '#{notizie[ns][g.get_news_index].link}'"))
+        Process.detach(Process.spawn("open -a Firefox '#{l}'"))
       else
-        Process.detach(Process.spawn("firefox #{notizie[ns][g.get_news_index].link}"))
+        Process.detach(Process.spawn("firefox #{l}"))
       end
 
     when 110
+      # next page if user presses 'n'
       g.next_page
-      g.write_news(notizie[ns])
+      g.write_news(cur_feed)
 
     when 112
+      # previous page if user presses 'p'
       g.prev_page
-      g.write_news(notizie[ns])
+      g.write_news(cur_feed)
 
     when 113
       # break if user presses 'q'
       break
 
-    when 49
-      # when user press 1 switch to ansa
-      ns = 'ansa'
-      g.write_news(notizie[ns])
-
     when 48
       # when user press 0 switch to HN
-      ns = 'HN'
-      g.write_news(notizie[ns])
+      cur_feed = feeds[:hn]
+      g.write_news(cur_feed)
 
+    when 49
+      # when user press 1 switch to Ansa
+      cur_feed = feeds[:ansa]
+      g.write_news(cur_feed)
+
+    when 50
+      # when user press 2 switch to 'il Post'
+      cur_feed = feeds[:post]
+      g.write_news(cur_feed)
     end
   end
 ensure
