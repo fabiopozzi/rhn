@@ -75,16 +75,18 @@ class Gui
       n = notizie[pos]
       next if n.nil?
 
-      Ncurses.clrtoeol
       current_row = i + STARTING_ROW
       Ncurses.stdscr.mvaddstr(current_row, 2, pos.to_s)
       Ncurses.stdscr.mvaddstr(current_row, 6, n.title)
+      Ncurses.clrtoeol
       Ncurses.stdscr.mvaddstr(current_row, Ncurses.COLS() - 8, n.n_commenti.to_s)
     end
 
+    Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
     # highlight first news content
     Ncurses.init_pair(NEWS_COLOR_PAIR, Ncurses::COLOR_WHITE, Ncurses::COLOR_BLACK)
     Ncurses.mvchgat(STARTING_ROW, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
+    @sel_line = 0
 
     Ncurses.refresh
   end
@@ -105,14 +107,12 @@ class Gui
 
   def update_rows(delta)
     Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
-    Ncurses.stdscr.mvaddstr(@sel_line + STARTING_ROW, 0, ' ')
 
     # wrap around if you reach the last news
     @sel_line = (@sel_line + delta) % (@max_rows)
     @sel_line = @max_rows if @sel_line < 0
 
     Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
-    Ncurses.stdscr.mvaddstr(@sel_line + STARTING_ROW, 0, '>')
   end
 end
 
@@ -215,7 +215,7 @@ begin
       g.write_news(notizie[ns])
 
     when 48
-      # when user press 1 switch to ansa
+      # when user press 0 switch to HN
       ns = 'HN'
       g.write_news(notizie[ns])
 
