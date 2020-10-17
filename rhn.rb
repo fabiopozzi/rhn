@@ -84,9 +84,14 @@ class Gui
     @sel_line = [@sel_line - @max_rows, 0].max
   end
 
+  def first_page
+    @page = 0
+    @sel_line = 0
+  end
+
   def write_news(feed)
 
-    Ncurses.clrtobot
+    Ncurses.stdscr.clrtobot
     init_first_row(feed.name)
 
     @max_rows = [30, feed.news_num].min
@@ -143,13 +148,9 @@ def parse_hn
 
   # get news list count
   (0...title_list.length).each do |i|
-    if subtext_list[i]
-      if subtext_list[i].css('a')[3]
+    if subtext_list[i] and subtext_list[i].css('a')[3]
         tmp = subtext_list[i].css('a')[3].child
         n_commenti = tmp.text.split(/[[:space:]]/).first
-      else
-        n_commenti = '0'
-      end
     else
       n_commenti = '0'
     end
@@ -228,16 +229,19 @@ begin
     when 48
       # when user press 0 switch to HN
       cur_feed = feeds[:hn]
+      g.first_page
       g.write_news(cur_feed)
 
     when 49
       # when user press 1 switch to Ansa
       cur_feed = feeds[:ansa]
+      g.first_page
       g.write_news(cur_feed)
 
     when 50
       # when user press 2 switch to 'il Post'
       cur_feed = feeds[:post]
+      g.first_page
       g.write_news(cur_feed)
     end
   end
