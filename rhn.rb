@@ -180,9 +180,12 @@ end
 
 begin
   feeds = {}
-  feeds[:hn] = parse_hn
-  feeds[:ansa] = parse_feed('Ansa', 'https://www.ansa.it/sito/ansait_rss.xml')
-  feeds[:post] = parse_feed('il Post', 'https://www.ilpost.it/feed')
+  threads = []
+  threads << Thread.new { feeds[:hn] = parse_hn }
+  threads << Thread.new { feeds[:ansa] = parse_feed('Ansa', 'https://www.ansa.it/sito/ansait_rss.xml') }
+  threads << Thread.new { feeds[:post] = parse_feed('il Post', 'https://www.ilpost.it/feed') }
+
+  threads.each(&:join)
 
   cur_feed = feeds[:hn]
   g = Gui.new()
