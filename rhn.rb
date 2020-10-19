@@ -2,11 +2,12 @@
 # frozen_string_literal: true
 
 require 'rubygems'
+require 'feedjira'
+require 'httparty'
+require 'json'
 require 'ncursesw'
 require 'nokogiri'
 require 'open-uri'
-require 'feedjira'
-require 'httparty'
 
 class Feed
   attr_reader :name, :news_num
@@ -43,6 +44,8 @@ end
 class Gui
   CYAN_COLOR_PAIR = 1
   NEWS_COLOR_PAIR = 2
+  TITLE_COLOR_PAIR = 3
+
   STARTING_ROW = 2
 
   attr_reader :sel_line
@@ -103,7 +106,10 @@ class Gui
 
       current_row = i + STARTING_ROW
       Ncurses.stdscr.mvaddstr(current_row, 2, pos.to_s)
+      # activate color attribute
+      #Ncurses.stdscr.attron(Ncurses.COLOR_PAIR(TITLE_COLOR_PAIR))
       Ncurses.stdscr.mvaddstr(current_row, 6, n.title)
+      #Ncurses.stdscr.attroff(Ncurses.COLOR_PAIR(TITLE_COLOR_PAIR))
       Ncurses.clrtoeol
       Ncurses.stdscr.mvaddstr(current_row, Ncurses.COLS() - 8, n.n_commenti)
     end
@@ -111,6 +117,7 @@ class Gui
     Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
     # highlight first news content
     Ncurses.init_pair(NEWS_COLOR_PAIR, Ncurses::COLOR_WHITE, Ncurses::COLOR_BLACK)
+    Ncurses.init_pair(TITLE_COLOR_PAIR, Ncurses::COLOR_BLUE, Ncurses::COLOR_BLACK)
     Ncurses.mvchgat(STARTING_ROW, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
     @sel_line = 0
 
@@ -179,11 +186,16 @@ def parse_feed(title, url)
 end
 
 begin
+  if File.exists?('./config.json')
+    config_file = File.read('./config.json')
+    rss_sources = JSON.parse(config_file)
+  end
   feeds = {}
   threads = []
   threads << Thread.new { feeds[:hn] = parse_hn }
-  threads << Thread.new { feeds[:ansa] = parse_feed('Ansa', 'https://www.ansa.it/sito/ansait_rss.xml') }
-  threads << Thread.new { feeds[:post] = parse_feed('il Post', 'https://www.ilpost.it/feed') }
+  rss_sources.each do |source|
+    threads << Thread.new { feeds[source['nome'].to_sym] = parse_feed(source['nome'], source['url']) }
+  end
 
   threads.each(&:join)
 
@@ -252,6 +264,5 @@ ensure
   g.restore_curses()
 end
 
-# TODO: aggiungere colori?
 # TODO: aggiungere visualizzazione tab?
 # TODO: leggere sorgenti RSS da file
