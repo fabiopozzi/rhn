@@ -62,12 +62,14 @@ class Gui
 
     # init color pairs
     Ncurses.init_pair(CYAN_COLOR_PAIR, Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
+    Ncurses.init_pair(NUM_COLOR_PAIR, Ncurses::COLOR_MAGENTA, Ncurses::COLOR_BLACK)
     Ncurses.init_pair(NEWS_COLOR_PAIR, Ncurses::COLOR_WHITE, Ncurses::COLOR_BLACK)
     Ncurses.init_pair(TITLE_COLOR_PAIR, Ncurses::COLOR_BLUE, Ncurses::COLOR_BLACK)
 
     @num_cols = Ncurses.COLS()
     @sel_line = 0
     @page = 0
+    @news_page = []
   end
 
   def get_news_index
@@ -96,6 +98,19 @@ class Gui
     @sel_line = 0
   end
 
+  def write_line(pos, row, notizia)
+      Ncurses.mvchgat(row, 0, -1, Ncurses::A_NORMAL, NUM_COLOR_PAIR, nil) # reset to normal style
+
+      Ncurses.stdscr.attron(Ncurses.COLOR_PAIR(NUM_COLOR_PAIR))
+      Ncurses.stdscr.mvaddstr(row, 2, pos.to_s) # news number
+
+      Ncurses.stdscr.attron(Ncurses.COLOR_PAIR(NEWS_COLOR_PAIR))
+      Ncurses.stdscr.mvaddstr(row, 6, notizia.title)  # title
+
+      Ncurses.clrtoeol
+      #Ncurses.stdscr.mvaddstr(row, Ncurses.COLS() - 8, notizia.n_commenti)
+  end
+
   def write_news(feed)
 
     Ncurses.stdscr.clrtobot
@@ -108,14 +123,8 @@ class Gui
       n = feed.get_news(pos)
       next if n.nil?
 
-      current_row = i + STARTING_ROW
-      Ncurses.stdscr.mvaddstr(current_row, 2, pos.to_s)
-      # activate color attribute
-      #Ncurses.stdscr.attron(Ncurses.COLOR_PAIR(TITLE_COLOR_PAIR))
-      Ncurses.stdscr.mvaddstr(current_row, 6, n.title)
-      #Ncurses.stdscr.attroff(Ncurses.COLOR_PAIR(TITLE_COLOR_PAIR))
-      Ncurses.clrtoeol
-      Ncurses.stdscr.mvaddstr(current_row, Ncurses.COLS() - 8, n.n_commenti)
+      write_line(pos, i + STARTING_ROW, n)
+      @news_page << n
     end
 
     # highlight first news content
@@ -133,7 +142,7 @@ class Gui
   end
 
   def update_rows(delta)
-    Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
+    write_line(get_news_index, @sel_line + STARTING_ROW, @news_page[@sel_line])
 
     # wrap around if you reach the last news
     @sel_line = (@sel_line + delta) % (@max_rows)
