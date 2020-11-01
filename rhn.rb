@@ -43,8 +43,9 @@ end
 
 class Gui
   CYAN_COLOR_PAIR = 1
-  NEWS_COLOR_PAIR = 2
-  TITLE_COLOR_PAIR = 3
+  NUM_COLOR_PAIR = 2
+  NEWS_COLOR_PAIR = 3
+  TITLE_COLOR_PAIR = 4
 
   STARTING_ROW = 2
 
@@ -59,9 +60,12 @@ class Gui
     Ncurses.stdscr.intrflush(false)   # turn off flush-on-interrupt
     Ncurses.stdscr.keypad(true)       # turn on keypad mode
 
+    # init color pairs
+    Ncurses.init_pair(CYAN_COLOR_PAIR, Ncurses::COLOR_CYAN, Ncurses::COLOR_BLACK)
+    Ncurses.init_pair(NEWS_COLOR_PAIR, Ncurses::COLOR_WHITE, Ncurses::COLOR_BLACK)
+    Ncurses.init_pair(TITLE_COLOR_PAIR, Ncurses::COLOR_BLUE, Ncurses::COLOR_BLACK)
+
     @num_cols = Ncurses.COLS()
-    @front_color = Ncurses::COLOR_CYAN
-    @back_color = Ncurses::COLOR_BLACK
     @sel_line = 0
     @page = 0
   end
@@ -114,18 +118,15 @@ class Gui
       Ncurses.stdscr.mvaddstr(current_row, Ncurses.COLS() - 8, n.n_commenti)
     end
 
-    Ncurses.mvchgat(@sel_line + STARTING_ROW, 0, -1, Ncurses::A_NORMAL, NEWS_COLOR_PAIR, nil)
     # highlight first news content
-    Ncurses.init_pair(NEWS_COLOR_PAIR, Ncurses::COLOR_WHITE, Ncurses::COLOR_BLACK)
-    Ncurses.init_pair(TITLE_COLOR_PAIR, Ncurses::COLOR_BLUE, Ncurses::COLOR_BLACK)
     Ncurses.mvchgat(STARTING_ROW, 0, -1, Ncurses::A_REVERSE, NEWS_COLOR_PAIR, nil)
+
     @sel_line = 0
 
     Ncurses.refresh
   end
 
   def init_first_row(feed_name)
-    Ncurses.init_pair(CYAN_COLOR_PAIR, @front_color, @back_color)
     Ncurses.stdscr.mvaddstr(0, ((@num_cols - 8) / 2) - 7, feed_name)
     Ncurses.clrtoeol
     Ncurses.mvchgat(0, 0, -1, Ncurses::A_REVERSE, CYAN_COLOR_PAIR, nil)
